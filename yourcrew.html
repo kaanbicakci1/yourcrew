@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YourCrew — Özel Ses & Video</title>
+
+<!-- ── Jitsi Meet API ── -->
+<script src="https://meet.jit.si/external_api.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
+
+/* ─── RESET & ROOT ─── */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg:       #0d0f14;
+  --sidebar:  #111318;
+  --surface:  #181c24;
+  --surface2: #1e2330;
+  --accent:   #7c6af7;
+  --accent2:  #4fd1c5;
+  --accent3:  #f7c948;
+  --text:     #e8eaf0;
+  --muted:    #7b8090;
+  --border:   rgba(255,255,255,0.07);
+  --online:   #48c774;
+  --danger:   #f87171;
+  --radius:   12px;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Syne', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+
+/* ─── LAYOUT ─── */
+#app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* ─── LOGIN SCREEN ─── */
+#loginScreen {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  flex-direction: column;
+  gap: 0;
+}
+
+.login-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 48px 40px;
+  width: 360px;
+  text-align: center;
+}
+
+.login-logo {
+  font-size: 48px;
+  margin-bottom: 16px;
+  display: block;
+  animation: float 3s ease-in-out infinite;
+}
+@keyframes float {
+  0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)}
+}
+
+.login-title {
+  font-size: 26px;
+  font-weight: 800;
+  margin-bottom: 6px;
+  letter-spacing: -0.5px;
+}
+
+.login-sub {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 32px;
+}
+
+.login-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+  margin-bottom: 8px;
+}
+
+.login-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  margin-bottom: 14px;
+  transition: border-color 0.2s;
+}
+.login-input:focus { border-color: var(--accent); }
+
+.login-btn {
+  width: 100%;
+  padding: 13px;
+  background: var(--accent);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  margin-top: 4px;
+}
+.login-btn:hover { background: #6a58e0; }
+.login-btn:active { transform: scale(0.98); }
+
+.login-error {
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 10px;
+  display: none;
+}
+
+/* ─── SIDEBAR (sunucu listesi) ─── */
+.sidebar {
+  width: 68px;
+  background: var(--sidebar);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 0;
+  gap: 6px;
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.srv-icon {
+  width: 44px; height: 44px;
+  border-radius: 14px;
+  background: var(--surface2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+  position: relative;
+}
+.srv-icon:hover { border-radius: 10px; background: var(--accent); }
+.srv-icon.active { background: var(--accent); border-radius: 10px; }
+.srv-icon.active::before {
+  content: '';
+  position: absolute; left: -9px;
+  width: 4px; height: 28px;
+  background: var(--accent);
+  border-radius: 0 3px 3px 0;
+}
+
+.srv-divider {
+  width: 32px; height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* ─── KANAL PANELİ ─── */
+.channel-panel {
+  width: 220px;
+  background: var(--sidebar);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.server-name {
+  padding: 0 16px;
+  height: 52px;
+  font-size: 15px;
+  font-weight: 800;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.server-name:hover { background: var(--surface2); }
+
+.ch-sections { overflow-y: auto; flex: 1; padding-bottom: 8px; }
+.ch-sections::-webkit-scrollbar { width: 0; }
+
+.ch-section { padding: 14px 8px 4px; }
+
+.sec-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 8px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sec-label button {
+  background: none; border: none;
+  color: var(--muted);
+  font-size: 18px; cursor: pointer; line-height: 1;
+  transition: color 0.2s;
+}
+.sec-label button:hover { color: var(--text); }
+
+.ch-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.15s;
+  position: relative;
+  user-select: none;
+}
+.ch-item:hover { background: var(--surface2); color: var(--text); }
+.ch-item.active { background: var(--surface2); color: var(--text); }
+.ch-item.active::before {
+  content: '';
+  position: absolute; left: 0;
+  width: 3px; height: 60%;
+  background: var(--accent);
+  border-radius: 0 3px 3px 0;
+}
+.ch-ico { font-size: 15px; flex-shrink: 0; }
+
+/* Ses kanalındaki kullanıcılar */
+.voice-members { padding: 2px 8px 4px 32px; }
+.vm-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.vm-av {
+  width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 800;
+  flex-shrink: 0;
+}
+.vm-av.speaking { box-shadow: 0 0 0 2px var(--accent); }
+
+/* Kullanıcı alt barı */
+.user-bar {
+  margin-top: auto;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.my-av {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800;
+  flex-shrink: 0;
+  position: relative;
+}
+.my-av::after {
+  content: '';
+  position: absolute; bottom:0; right:0;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--online);
+  border: 2px solid var(--sidebar);
+}
+.my-info { flex: 1; min-width: 0; }
+.my-name { font-size: 12px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.my-tag  { font-size: 10px; color: var(--muted); font-family: 'Space Mono', monospace; }
+.mini-ctrls { display: flex; gap: 4px; }
+.mini-btn {
+  width: 28px; height: 28px; border-radius: 7px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 13px;
+  transition: all 0.15s;
+}
+.mini-btn:hover { background: var(--accent); }
+.mini-btn.active-red { background: rgba(248,113,113,0.2); border-color: rgba(248,113,113,0.3); }
+
+/* ─── ANA İÇERİK ─── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Üst bar */
+.topbar {
+  height: 52px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.tb-ico { font-size: 16px; color: var(--muted); }
+.tb-title { font-size: 15px; font-weight: 800; }
+.tb-sep { color: rgba(255,255,255,0.12); margin: 0 4px; }
+.tb-desc { font-size: 12px; color: var(--muted); font-weight: 600; }
+.tb-actions { margin-left: auto; display: flex; gap: 8px; }
+
+.btn {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: none;
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary  { background: var(--accent); color: white; }
+.btn-primary:hover { background: #6a58e0; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--surface); }
+.btn-danger   { background: rgba(248,113,113,0.15); color: var(--danger); border: 1px solid rgba(248,113,113,0.2); }
+.btn-danger:hover { background: rgba(248,113,113,0.25); }
+.btn-teal     { background: rgba(79,209,197,0.15); color: var(--accent2); border: 1px solid rgba(79,209,197,0.2); }
+.btn-teal:hover { background: rgba(79,209,197,0.25); }
+
+/* İçerik scroll alanı */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.content::-webkit-scrollbar { width: 4px; }
+.content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Kartlar */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+
+/* ─── DAVET BARI ─── */
+.invite-bar {
+  background: rgba(124,106,247,0.08);
+  border: 1px solid rgba(124,106,247,0.2);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.invite-ico { font-size: 20px; }
+.invite-text .it-title { font-size: 13px; font-weight: 800; }
+.invite-text .it-sub   { font-size: 11px; color: var(--muted); font-weight: 600; }
+.invite-code {
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: var(--accent2);
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-left: auto;
+}
+.invite-code:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ─── ARAMA BÖLÜMÜ ─── */
+.call-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.call-label {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--muted);
+  display: flex; align-items: center; gap: 8px;
+}
+.live-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #f87171;
+  animation: blink 1.5s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.call-badge {
+  background: rgba(124,106,247,0.15);
+  color: var(--accent);
+  border: 1px solid rgba(124,106,247,0.3);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px; font-weight: 700;
+}
+
+/* Jitsi container */
+#jitsi-container {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  display: none;
+}
+
+/* Katılımcı grid (Jitsi yokken) */
+.participants-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px,1fr));
+  gap: 10px;
+}
+.p-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  position: relative;
+  transition: all 0.2s;
+}
+.p-card.speaking { border-color: var(--accent); background: rgba(124,106,247,0.08); }
+.p-card.muted    { opacity: 0.6; }
+
+.p-av {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 800;
+  transition: all 0.2s;
+}
+.speaking .p-av { box-shadow: 0 0 0 3px var(--accent); }
+.p-name  { font-size: 12px; font-weight: 700; text-align: center; }
+.p-state { font-size: 10px; font-weight: 600; text-align: center; color: var(--muted); }
+.p-badge {
+  position: absolute; top: 7px; right: 7px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--surface);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px;
+}
+
+/* Konuşma dalgası */
+.wave { display: flex; gap: 2px; align-items: center; }
+.wave span {
+  width: 3px; height: 10px;
+  background: var(--accent); border-radius: 2px;
+  animation: wavePulse 0.8s ease infinite;
+}
+.wave span:nth-child(2) { animation-delay: 0.15s; }
+.wave span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes wavePulse { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(1.8)} }
+
+/* ─── MÜZİK BOTU ─── */
+.bot-header {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 16px;
+}
+.bot-av {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.bot-name { font-size: 14px; font-weight: 800; }
+.bot-sub  { font-size: 11px; color: var(--muted); font-weight: 600; }
+
+.now-playing {
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 12px;
+}
+.track-thumb {
+  width: 46px; height: 46px; border-radius: 9px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.track-info { flex: 1; min-width: 0; }
+.track-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.track-sub  { font-size: 11px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+.progress-wrap { margin-top: 6px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 2px; width: 0%; transition: width 0.5s; }
+
+.music-ctrls { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 12px; }
+.mc-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 15px;
+  transition: all 0.15s;
+}
+.mc-btn:hover { background: var(--surface); transform: scale(1.1); }
+.mc-btn.play-btn { width: 42px; height: 42px; background: var(--accent); border-color: var(--accent); }
+.mc-btn.play-btn:hover { background: #6a58e0; }
+
+/* Müzik komutu girişi */
+.music-input-wrap {
+  display: flex; gap: 8px;
+}
+.music-input {
+  flex: 1;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.music-input:focus { border-color: var(--accent); }
+.music-input::placeholder { color: var(--muted); }
+
+/* Kuyruk */
+.queue-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 6px; border-radius: 8px;
+  cursor: pointer; transition: background 0.15s;
+}
+.queue-item:hover { background: var(--surface2); }
+.q-num { font-size: 11px; color: var(--muted); font-family: 'Space Mono', monospace; width: 14px; text-align: center; }
+.q-info { flex: 1; min-width: 0; }
+.q-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.q-dur  { font-size: 10px; color: var(--muted); font-family: 'Space Mono', monospace; }
+.q-del  { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 15px; padding: 2px 4px; border-radius: 5px; transition: all 0.15s; }
+.q-del:hover { background: var(--surface); color: var(--danger); }
+
+/* ─── SAĞ PANEL (üyeler) ─── */
+.right-panel {
+  width: 210px;
+  padding: 14px;
+  border-left: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.right-panel::-webkit-scrollbar { width: 0; }
+
+.members-title {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 10px;
+}
+.member-row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.member-row:last-child { border-bottom: none; }
+.m-av {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; flex-shrink: 0;
+  position: relative;
+}
+.m-av::after {
+  content: '';
+  position: absolute; bottom: 0; right: 0;
+  width: 8px; height: 8px; border-radius: 50%;
+  border: 2px solid var(--sidebar);
+}
+.m-av.on::after  { background: var(--online); }
+.m-av.off::after { background: var(--muted); }
+.m-name-w .m-name { font-size: 12px; font-weight: 700; }
+.m-name-w .m-act  { font-size: 10px; color: var(--muted); font-weight: 600; }
+
+/* Komutlar referansı */
+.cmd-card { background: var(--surface2); border-radius: 10px; padding: 12px; }
+.cmd-title { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.cmd-row   { display: flex; align-items: flex-start; gap: 6px; padding: 4px 0; }
+.cmd-code  { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent2); background: rgba(79,209,197,0.1); border-radius: 4px; padding: 2px 6px; flex-shrink: 0; }
+.cmd-desc  { font-size: 11px; color: var(--muted); font-weight: 600; line-height: 1.4; }
+
+/* Toast */
+#toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 13px; font-weight: 700;
+  opacity: 0; transition: all 0.3s;
+  z-index: 999;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Responsive gizle */
+@media (max-width: 900px) {
+  .right-panel { display: none; }
+}
+@media (max-width: 680px) {
+  .channel-panel { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── GİRİŞ EKRANI ─── -->
+<div id="loginScreen">
+  <div class="login-box">
+    <span class="login-logo">🌀</span>
+    <h1 class="login-title">YourCrew</h1>
+    <p class="login-sub">Özel sesin, videonun ve müziğin adresi.</p>
+
+    <label class="login-label" for="nameInput">Adın</label>
+    <input class="login-input" id="nameInput" type="text" placeholder="Ahmet" maxlength="20" autocomplete="off">
+
+    <label class="login-label" for="codeInput">Davet Kodu</label>
+    <input class="login-input" id="codeInput" type="text" placeholder="XXX-XXX" maxlength="10" autocomplete="off">
+
+    <button class="login-btn" onclick="tryLogin()">Giriş Yap →</button>
+    <p class="login-error" id="loginError">❌ Geçersiz kod. Arkadaşından iste.</p>
+  </div>
+</div>
+
+<!-- ─── ANA UYGULAMA ─── -->
+<div id="app" style="display:none;">
+
+  <!-- Sunucu Kenar Çubuğu -->
+  <div class="sidebar">
+    <div class="srv-icon active" title="YourCrew">🌀</div>
+    <div class="srv-divider"></div>
+    <div class="srv-icon" title="Sunucu Ekle" style="font-size:24px;color:var(--muted);">+</div>
+  </div>
+
+  <!-- Kanal Paneli -->
+  <div class="channel-panel">
+    <div class="server-name">
+      <span>✦ YourCrew</span>
+      <span style="font-size:18px;">⌄</span>
+    </div>
+
+    <div class="ch-sections">
+      <!-- Ses Kanalları -->
+      <div class="ch-section">
+        <div class="sec-label">Ses Kanalları <button onclick="toast('Yakında!')">+</button></div>
+
+        <div class="ch-item active" id="chGeneral" onclick="switchVoice(this,'Genel')">
+          <span class="ch-ico">🔊</span> Genel
+        </div>
+        <div class="voice-members" id="vmGenel"></div>
+
+        <div class="ch-item" id="chGaming" onclick="switchVoice(this,'Oyun')">
+          <span class="ch-ico">🔊</span> Oyun
+        </div>
+        <div class="ch-item" id="chChill" onclick="switchVoice(this,'Chill')">
+          <span class="ch-ico">🔊</span> Chill
+        </div>
+      </div>
+
+      <!-- Metin Kanalları -->
+      <div class="ch-section">
+        <div class="sec-label">Metin Kanalları <button onclick="toast('Yakında!')">+</button></div>
+        <div class="ch-item active-text" onclick="toast('Metin kanalı yakında!')">
+          <span class="ch-ico">#</span> genel
+        </div>
+        <div class="ch-item" onclick="scrollToMusic()">
+          <span class="ch-ico">#</span> müzik-botu
+        </div>
+        <div class="ch-item" onclick="toast('Linkler kanalı yakında!')">
+          <span class="ch-ico">#</span> linkler
+        </div>
+      </div>
+    </div>
+
+    <!-- Kullanıcı Alt Barı -->
+    <div class="user-bar">
+      <div class="my-av" id="myAvatar">?</div>
+      <div class="my-info">
+        <div class="my-name" id="myNameLabel">—</div>
+        <div class="my-tag">#0001</div>
+      </div>
+      <div class="mini-ctrls">
+        <div class="mini-btn" id="micBtn" onclick="toggleMic()" title="Mikrofon">🎙️</div>
+        <div class="mini-btn" id="deafBtn" onclick="toggleDeaf()" title="Kulaklık">🎧</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ana İçerik -->
+  <div class="main">
+    <!-- Üst Bar -->
+    <div class="topbar">
+      <span class="tb-ico">🔊</span>
+      <span class="tb-title" id="topbarTitle">Genel</span>
+      <span class="tb-sep">|</span>
+      <span class="tb-desc">Özel ses kanalın</span>
+      <div class="tb-actions">
+        <button class="btn btn-teal" id="videoBtn" onclick="toggleVideo()">📹 Video Aç</button>
+        <button class="btn btn-primary" id="joinBtn" onclick="toggleCall()">Kanala Katıl</button>
+      </div>
+    </div>
+
+    <div class="content" id="mainContent">
+
+      <!-- Davet Barı -->
+      <div class="invite-bar">
+        <span class="invite-ico">🔗</span>
+        <div class="invite-text">
+          <div class="it-title">Arkadaşlarını davet et</div>
+          <div class="it-sub">Bu kodu paylaş — sadece 5 kişilik yer var</div>
+        </div>
+        <div class="invite-code" id="inviteCode" onclick="copyInvite()">XK9-M2T</div>
+        <button class="btn btn-primary" onclick="copyInvite()">Kopyala</button>
+      </div>
+
+      <!-- Arama Bölümü -->
+      <div class="card">
+        <div class="call-header">
+          <div class="call-label">
+            <div class="live-dot"></div>
+            Canlı · <span id="activeChName">Genel</span>
+          </div>
+          <div class="call-badge" id="callBadge">0 bağlı</div>
+        </div>
+
+        <!-- Jitsi gömülü görüntülü arama -->
+        <div id="jitsi-container" style="height:400px;"></div>
+
+        <!-- Katılmadan önce gösterilen ekran -->
+        <div id="preJoinGrid" class="participants-grid">
+          <div class="p-card speaking" id="pc-ahmet">
+            <div class="p-av" style="background:#7c6af7;">AK</div>
+            <span class="p-name">Ahmet</span>
+            <div class="p-state"><div class="wave"><span></span><span></span><span></span></div></div>
+            <div class="p-badge" style="background:rgba(124,106,247,0.2);color:var(--accent);">🎤</div>
+          </div>
+          <div class="p-card" id="pc-zeynep">
+            <div class="p-av" style="background:#4fd1c5;color:#0d0f14;">ZY</div>
+            <span class="p-name">Zeynep</span>
+            <span class="p-state">dinliyor</span>
+            <div class="p-badge">🎧</div>
+          </div>
+          <div class="p-card muted" id="pc-burak">
+            <div class="p-av" style="background:#f7c948;color:#0d0f14;">BK</div>
+            <span class="p-name">Burak</span>
+            <span class="p-state">sesi kapalı</span>
+            <div class="p-badge">🔇</div>
+          </div>
+          <div class="p-card" id="pc-you" style="border:1px dashed rgba(255,255,255,0.12);opacity:0.5;">
+            <div class="p-av" style="background:#333;color:#666;font-size:22px;" id="youAvSrc">+</div>
+            <span class="p-name" id="youPName" style="color:var(--muted);">Katıl</span>
+            <span class="p-state" id="youPState">kanala katılmak için tıkla</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Müzik Botu -->
+      <div class="card" id="musicSection">
+        <div class="bot-header">
+          <div class="bot-av">🎵</div>
+          <div>
+            <div class="bot-name">GrooveBot</div>
+            <div class="bot-sub">Müzik Botu · Çevrimiçi</div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px;">
+            <button class="btn btn-secondary" style="font-size:11px;padding:5px 10px;" onclick="toggleQueue()">Kuyruk</button>
+          </div>
+        </div>
+
+        <!-- Şu an çalan -->
+        <div class="now-playing" id="nowPlayingBox">
+          <div class="track-thumb" id="trackThumb">🎸</div>
+          <div class="track-info">
+            <div class="track-name" id="trackName">Tame Impala — Let It Happen</div>
+            <div class="track-sub" id="trackSub">YouTube · 7:47 · 🔉 80%</div>
+            <div class="progress-wrap"><div class="progress-fill" id="progressFill"></div></div>
+          </div>
+        </div>
+
+        <!-- Kontroller -->
+        <div class="music-ctrls">
+          <div class="mc-btn" onclick="musicCmd('shuffle')" title="Karıştır">🔀</div>
+          <div class="mc-btn" onclick="musicCmd('prev')"    title="Önceki">⏮</div>
+          <div class="mc-btn play-btn" id="playBtn" onclick="togglePlay()" title="Duraklat">⏸</div>
+          <div class="mc-btn" onclick="musicCmd('next')"    title="Sonraki">⏭</div>
+          <div class="mc-btn" id="loopBtn" onclick="toggleLoop()" title="Döngü">🔁</div>
+        </div>
+
+        <!-- Şarkı ekle girişi -->
+        <div class="music-input-wrap" style="margin-bottom:14px;">
+          <input class="music-input" id="musicSearchInput" type="text"
+            placeholder="Şarkı adı veya YouTube linki gir..."
+            onkeydown="if(event.key==='Enter')addSong()">
+          <button class="btn btn-primary" onclick="addSong()">▸ Ekle</button>
+        </div>
+
+        <!-- Kuyruk -->
+        <div id="queueSection">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Sıradakiler</div>
+          <div id="queueList"></div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+
+  <!-- Sağ Panel -->
+  <div class="right-panel">
+    <div>
+      <div class="members-title">Üyeler — 5</div>
+      <div id="memberList"></div>
+    </div>
+
+    <div class="cmd-card">
+      <div class="cmd-title">Bot Komutları</div>
+      <div class="cmd-row"><span class="cmd-code">!çal</span><span class="cmd-desc">Şarkı çal</span></div>
+      <div class="cmd-row"><span class="cmd-code">!dur</span><span class="cmd-desc">Duraklat</span></div>
+      <div class="cmd-row"><span class="cmd-code">!geç</span><span class="cmd-desc">Sonraki</span></div>
+      <div class="cmd-row"><span class="cmd-code">!kuyruk</span><span class="cmd-desc">Listeyi göster</span></div>
+      <div class="cmd-row"><span class="cmd-code">!ses 80</span><span class="cmd-desc">Sesi ayarla</span></div>
+      <div class="cmd-row"><span class="cmd-code">!dön</span><span class="cmd-desc">Döngü aç/kapat</span></div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<div id="toast"></div>
+
+<script>
+/* ────────────────────────────────────────────────
+   AYARLAR  —  Burayı özelleştir!
+──────────────────────────────────────────────── */
+const CONFIG = {
+  // ⚠️ BU KODU ARKADAŞLARINA VER (büyük/küçük harf önemli değil)
+  INVITE_CODE: "XK9-M2T",
+
+  // Jitsi oda adı — tahmin edilmesi zor bir şey yaz
+  ROOM_NAME: "yourcrew-private-x9k2m7",
+
+  // Üyeler listesi
+  MEMBERS: [
+    { initials:"AK", name:"Ahmet",  color:"#7c6af7", textColor:"white",   status:"online",  act:"Seste" },
+    { initials:"ZY", name:"Zeynep", color:"#4fd1c5", textColor:"#0d0f14", status:"online",  act:"Seste" },
+    { initials:"BK", name:"Burak",  color:"#f7c948", textColor:"#0d0f14", status:"online",  act:"Sessiz" },
+    { initials:"EL", name:"Elif",   color:"#444",    textColor:"#888",    status:"offline", act:"Çevrimdışı" },
+    { initials:"CR", name:"Cem",    color:"#444",    textColor:"#888",    status:"offline", act:"Çevrimdışı" },
+  ],
+
+  // Başlangıç kuyruğu
+  QUEUE: [
+    { name:"Daft Punk — Get Lucky",              dur:"4:07", emoji:"🎹" },
+    { name:"Disclosure — Latch ft. Sam Smith",   dur:"3:46", emoji:"🎧" },
+    { name:"FKJ — Skyline",                      dur:"5:22", emoji:"🎸" },
+    { name:"Bonobo — Kong",                      dur:"4:51", emoji:"🥁" },
+  ],
+};
+
+/* ─── DURUM ─── */
+let state = {
+  username: "",
+  micOn: true,
+  deafOn: false,
+  inCall: false,
+  videoOn: false,
+  playing: true,
+  looping: false,
+  currentTrack: { name:"Tame Impala — Let It Happen", dur:"7:47", emoji:"🎸" },
+  progress: 42,
+  queue: [...CONFIG.QUEUE],
+  jitsiApi: null,
+};
+
+/* ─── GİRİŞ ─── */
+function tryLogin() {
+  const name = document.getElementById('nameInput').value.trim();
+  const code = document.getElementById('codeInput').value.trim().toUpperCase().replace(/\s/g,'');
+  const expected = CONFIG.INVITE_CODE.toUpperCase().replace(/[-\s]/g,'');
+
+  if (!name) { showLoginError("Lütfen adını gir."); return; }
+  if (code.replace(/-/g,'') !== expected.replace(/-/g,'')) {
+    showLoginError("❌ Geçersiz kod. Arkadaşından iste.");
+    return;
+  }
+  state.username = name;
+  document.getElementById('loginScreen').style.opacity = '0';
+  document.getElementById('loginScreen').style.transition = 'opacity 0.4s';
+  setTimeout(() => {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    initApp();
+  }, 400);
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+
+document.getElementById('codeInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') tryLogin();
+});
+document.getElementById('nameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('codeInput').focus();
+});
+
+/* ─── BAŞLAT ─── */
+function initApp() {
+  const initials = state.username.substring(0,2).toUpperCase();
+  document.getElementById('myAvatar').textContent = initials;
+  document.getElementById('myNameLabel').textContent = state.username;
+  renderMembers();
+  renderQueue();
+  startProgress();
+}
+
+/* ─── ÜYE LİSTESİ ─── */
+function renderMembers() {
+  const list = document.getElementById('memberList');
+  list.innerHTML = CONFIG.MEMBERS.map(m => `
+    <div class="member-row">
+      <div class="m-av ${m.status}" style="background:${m.color};color:${m.textColor};">${m.initials}</div>
+      <div class="m-name-w">
+        <div class="m-name" style="${m.status==='offline'?'color:var(--muted);':''}">${m.name}</div>
+        <div class="m-act">${m.act}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ─── SES KANALI GEÇİŞ ─── */
+function switchVoice(el, name) {
+  document.querySelectorAll('.ch-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('topbarTitle').textContent = name;
+  document.getElementById('activeChName').textContent = name;
+  toast(`${name} kanalına geçildi`);
+  if (state.inCall) leaveCall();
+}
+
+/* ─── ARAYI BAŞLAT / BIRAK ─── */
+function toggleCall() {
+  if (state.inCall) leaveCall();
+  else joinCall();
+}
+
+function joinCall() {
+  state.inCall = true;
+  const btn = document.getElementById('joinBtn');
+  btn.className = 'btn btn-danger';
+  btn.textContent = 'Kanaldan Çık';
+
+  // Jitsi gömme
+  const container = document.getElementById('jitsi-container');
+  container.style.display = 'block';
+  document.getElementById('preJoinGrid').style.display = 'none';
+
+  const roomName = CONFIG.ROOM_NAME + '-' + document.getElementById('topbarTitle').textContent.toLowerCase().replace(/\s+/g,'-');
+
+  try {
+    if (state.jitsiApi) { state.jitsiApi.dispose(); state.jitsiApi = null; }
+    state.jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", {
+      roomName: roomName,
+      parentNode: container,
+      width: "100%",
+      height: 400,
+      userInfo: { displayName: state.username },
+      configOverwrite: {
+        startWithAudioMuted: !state.micOn,
+        startWithVideoMuted: !state.videoOn,
+        prejoinPageEnabled: false,
+        disableDeepLinking: true,
+        toolbarButtons: [
+          'microphone','camera','desktop','fullscreen',
+          'fodeviceselection','settings','videoquality','tileview',
+        ],
+      },
+      interfaceConfigOverwrite: {
+        SHOW_JITSI_WATERMARK: false,
+        SHOW_WATERMARK_FOR_GUESTS: false,
+        SHOW_BRAND_WATERMARK: false,
+        TOOLBAR_ALWAYS_VISIBLE: true,
+        DEFAULT_REMOTE_DISPLAY_NAME: 'Arkadaş',
+      },
+    });
+    updateBadge(1);
+    toast(`✅ ${document.getElementById('topbarTitle').textContent} kanalına katıldın!`);
+  } catch(e) {
+    container.innerHTML = `
+      <div style="padding:32px;text-align:center;color:var(--muted);">
+        <div style="font-size:32px;margin-bottom:12px;">⚠️</div>
+        <div style="font-weight:700;margin-bottom:8px;">Jitsi yüklenemedi</div>
+        <div style="font-size:12px;">Tarayıcı engeli olabilir. <a href="https://meet.jit.si/${roomName}" target="_blank" style="color:var(--accent);">Yeni sekmede aç →</a></div>
+      </div>`;
+    toast('Jitsi yüklenemedi — yeni sekmede açılıyor');
+    setTimeout(() => window.open('https://meet.jit.si/' + roomName, '_blank'), 1000);
+  }
+}
+
+function leaveCall() {
+  state.inCall = false;
+  const btn = document.getElementById('joinBtn');
+  btn.className = 'btn btn-primary';
+  btn.textContent = 'Kanala Katıl';
+
+  if (state.jitsiApi) { state.jitsiApi.dispose(); state.jitsiApi = null; }
+
+  const container = document.getElementById('jitsi-container');
+  container.style.display = 'none';
+  container.innerHTML = '';
+  document.getElementById('preJoinGrid').style.display = 'grid';
+  updateBadge(0);
+  toast('Kanaldan ayrıldın');
+}
+
+function updateBadge(n) {
+  document.getElementById('callBadge').textContent = n + ' bağlı';
+}
+
+/* ─── VİDEO ─── */
+function toggleVideo() {
+  state.videoOn = !state.videoOn;
+  const btn = document.getElementById('videoBtn');
+  btn.textContent = state.videoOn ? '📹 Video Kapat' : '📹 Video Aç';
+  if (state.jitsiApi) {
+    state.jitsiApi.executeCommand('toggleVideo');
+  }
+  toast(state.videoOn ? 'Video açıldı' : 'Video kapatıldı');
+}
+
+/* ─── MİKROFON / SAĞIR ─── */
+function toggleMic() {
+  state.micOn = !state.micOn;
+  const btn = document.getElementById('micBtn');
+  btn.textContent = state.micOn ? '🎙️' : '🔇';
+  btn.className = 'mini-btn' + (state.micOn ? '' : ' active-red');
+  if (state.jitsiApi) state.jitsiApi.executeCommand('toggleAudio');
+  toast(state.micOn ? 'Mikrofon açık' : 'Mikrofon kapalı');
+}
+
+function toggleDeaf() {
+  state.deafOn = !state.deafOn;
+  const btn = document.getElementById('deafBtn');
+  btn.textContent = state.deafOn ? '🔕' : '🎧';
+  btn.className = 'mini-btn' + (state.deafOn ? ' active-red' : '');
+  toast(state.deafOn ? 'Sesler kapatıldı' : 'Sesler açıldı');
+}
+
+/* ─── DAVET KODU KOPYALA ─── */
+function copyInvite() {
+  navigator.clipboard?.writeText(CONFIG.INVITE_CODE).catch(()=>{});
+  toast('✅ Davet kodu kopyalandı: ' + CONFIG.INVITE_CODE);
+}
+
+/* ─── MÜZİK ─── */
+let progressInterval = null;
+
+function startProgress() {
+  if (progressInterval) clearInterval(progressInterval);
+  progressInterval = setInterval(() => {
+    if (!state.playing) return;
+    state.progress = Math.min(state.progress + 0.1, 100);
+    document.getElementById('progressFill').style.width = state.progress + '%';
+    if (state.progress >= 100) {
+      state.progress = 0;
+      if (state.looping) return;
+      nextTrack();
+    }
+  }, 300);
+}
+
+function togglePlay() {
+  state.playing = !state.playing;
+  document.getElementById('playBtn').textContent = state.playing ? '⏸' : '▶';
+  toast(state.playing ? '▶ Devam ediyor' : '⏸ Duraklatıldı');
+}
+
+function toggleLoop() {
+  state.looping = !state.looping;
+  const btn = document.getElementById('loopBtn');
+  btn.style.background = state.looping ? 'rgba(124,106,247,0.25)' : '';
+  btn.style.borderColor  = state.looping ? 'var(--accent)' : '';
+  toast(state.looping ? '🔁 Döngü açık' : '🔁 Döngü kapalı');
+}
+
+function nextTrack() {
+  if (state.queue.length === 0) { toast('Kuyruk boş!'); return; }
+  const next = state.queue.shift();
+  state.currentTrack = next;
+  updateNowPlaying();
+  renderQueue();
+  state.progress = 0;
+  toast('▶ ' + next.name);
+}
+
+function updateNowPlaying() {
+  const t = state.currentTrack;
+  document.getElementById('trackThumb').textContent = t.emoji || '🎵';
+  document.getElementById('trackName').textContent  = t.name;
+  document.getElementById('trackSub').textContent   = 'YouTube · ' + t.dur + ' · 🔉 80%';
+  document.getElementById('progressFill').style.width = '0%';
+}
+
+function musicCmd(cmd) {
+  if (cmd === 'next')    nextTrack();
+  if (cmd === 'prev')    toast('⏮ Başa sarıldı');
+  if (cmd === 'shuffle') { shuffleQueue(); toast('🔀 Kuyruk karıştırıldı'); }
+}
+
+function shuffleQueue() {
+  for (let i = state.queue.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [state.queue[i], state.queue[j]] = [state.queue[j], state.queue[i]];
+  }
+  renderQueue();
+}
+
+function addSong() {
+  const inp = document.getElementById('musicSearchInput');
+  const val = inp.value.trim();
+  if (!val) { toast('Bir şarkı adı gir!'); return; }
+  const song = { name: val, dur: '?:??', emoji: '🎵' };
+  state.queue.push(song);
+  renderQueue();
+  inp.value = '';
+  toast('✅ Kuyruğa eklendi: ' + val);
+}
+
+function removeFromQueue(i) {
+  const removed = state.queue.splice(i, 1)[0];
+  renderQueue();
+  toast('🗑️ Kaldırıldı: ' + removed.name);
+}
+
+function renderQueue() {
+  const list = document.getElementById('queueList');
+  if (state.queue.length === 0) {
+    list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Kuyruk boş — yukarıdan şarkı ekle!</div>';
+    return;
+  }
+  list.innerHTML = state.queue.map((q,i) => `
+    <div class="queue-item">
+      <span class="q-num">${i+1}</span>
+      <div class="q-info">
+        <div class="q-name">${q.emoji || '🎵'} ${q.name}</div>
+        <div class="q-dur">${q.dur}</div>
+      </div>
+      <button class="q-del" onclick="removeFromQueue(${i})">×</button>
+    </div>
+  `).join('');
+}
+
+let queueVisible = true;
+function toggleQueue() {
+  queueVisible = !queueVisible;
+  document.getElementById('queueSection').style.display = queueVisible ? 'block' : 'none';
+}
+
+function scrollToMusic() {
+  document.getElementById('musicSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+/* ─── TOAST ─── */
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
